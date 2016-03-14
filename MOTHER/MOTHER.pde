@@ -38,10 +38,8 @@ public class textFields {
 Motor motorA = new Motor();
 Motor motorB = new Motor();
 Move moveA = new Move();
-// Move moveB = new Move();
 
 textFields fieldsA = new textFields();
-// textFields fieldsB = new textFields();
 
 int transmissionLost;
 int Estop;
@@ -79,7 +77,6 @@ void setup() {
   drawHeader();
   drawStatusArea();
   drawCueingArea();
-//  drawPIDArea();
   drawCueingInput();
 
   myPort = new Serial(this, "COM11", 9600);
@@ -156,10 +153,6 @@ void serialEvent(Serial myPort) {
     moveA.standbyAT = int(dataBuffer[7]);
     moveA.standbyDT = int(dataBuffer[8]);
     moveA.direction = int(dataBuffer[9]);
-//    moveB.standbyD = int(dataBuffer[9]);
-//    moveB.standbyT = int(dataBuffer[10]);
-//    moveB.standbyAT = int(dataBuffer[11]);
-//    moveB.standbyDT = int(dataBuffer[12]);
     
     motorA.velInInches = motorA.velInCounts / resolution;
     motorB.velInInches = motorB.velInCounts / resolution;
@@ -177,27 +170,15 @@ public void standby() {
   String tA = timeA.getText();
   String atA = atimeA.getText();
   String dtA = dtimeA.getText();
-//  String dB = distanceB.getText();
-//  String tB = timeB.getText();
-//  String atB = atimeB.getText();
-//  String dtB = dtimeB.getText();
   if(dA.isEmpty()) dA = "0";
   if(tA.isEmpty()) tA = "0";
   if(atA.isEmpty()) atA = "0";
   if(dtA.isEmpty()) dtA = "0";
-//  if(dB.isEmpty()) dB = "0";
-//  if(tB.isEmpty()) tB = "0";
-//  if(atB.isEmpty()) atB = "0";
-//  if(dtB.isEmpty()) dtB = "0";
   byte[] data = new byte[9];
   int fdA = int(dA);
   int ftA = int(tA);
   int fatA = int(atA);
   int fdtA = int(dtA);
-//  int fdB = int(dB);
-//  int ftB = int(tB);
-//  int fatB = int(atB);
-//  int fdtB = int(dtB);
   data[0] = byte('!');
   data[1] = byte(1);
   data[2] = byte(fdA);
@@ -206,23 +187,15 @@ public void standby() {
   data[5] = byte(fdtA);
   if(direction) data[6] = 0;
   if(!direction) data[6] = 1;
-//  data[5] = byte(fdB);
-//  data[6] = byte(ftB);
-//  data[7] = byte(fatB);
-//  data[8] = byte(fdtB);
   for(int i = 0; i < 7; i++) {
     myPort.write(data[i]);
     myPort.write(',');
   }
   myPort.write(byte(255));
   distanceA.clear();
-//  distanceB.clear();
   timeA.clear();
-//  timeB.clear();
   atimeA.clear();
-//  atimeB.clear();
-  dtimeA.clear();
-//  dtimeB.clear();  
+  dtimeA.clear(); 
 }
 
 /*        END standby
@@ -337,10 +310,6 @@ void drawCueingArea() {
   textFont(textFont,10);
   text("Loaded Cue",255,155);
   textFont(textFont,12);
-//  text("A",150,170);
-//  text("B",195,170);
-//  text("A",240,170);
-//  text("B",275,170);
   textAlign(LEFT, CENTER);
   text("Travel\ndistance (in):",40,195);
   text("Travel\ntime (secs):",40,240);
@@ -406,17 +375,6 @@ void drawCueingInput() {
      .setAutoClear(false)
      ;
 
-//  distanceB = cp5.addTextfield("distanceB")
-//     .setPosition(180,180)
-//     .setSize(30,30)
-//     .setFont(inputFont)
-//     .setColor(color(black))
-//     .setColorBackground(color(white))
-//     .setColorForeground(color(highlight))
-//     .setColorActive(color(black))
-//     .setAutoClear(false)
-//     ;
-
   timeA = cp5.addTextfield("timeA")
      .setPosition(135,225)
      .setSize(30,30)
@@ -427,17 +385,6 @@ void drawCueingInput() {
      .setColorActive(color(0,0,0))
      .setAutoClear(false)
      ;
-
-//  timeB = cp5.addTextfield("timeB")
-//     .setPosition(180,225)
-//     .setSize(30,30)
-//     .setFont(inputFont)
-//     .setColor(color(black))
-//     .setColorBackground(color(white))
-//     .setColorForeground(color(highlight))
-//     .setColorActive(color(black))
-//     .setAutoClear(false)
-//     ;
 
   atimeA = cp5.addTextfield("atimeA")
      .setPosition(135,270)
@@ -450,17 +397,6 @@ void drawCueingInput() {
      .setAutoClear(false)
      ;
 
-//  atimeB = cp5.addTextfield("atimeB")
-//     .setPosition(180,270)
-//     .setSize(30,30)
-//     .setFont(inputFont)
-//     .setColor(color(black))
-//     .setColorBackground(color(white))
-//     .setColorForeground(color(highlight))
-//     .setColorActive(color(black))
-//     .setAutoClear(false)
-//     ;
-
   dtimeA = cp5.addTextfield("dtimeA")
      .setPosition(135,315)
      .setSize(30,30)
@@ -471,17 +407,6 @@ void drawCueingInput() {
      .setColorActive(color(black))
      .setAutoClear(false)
      ;
-
-//  dtimeB = cp5.addTextfield("dtimeB")
-//     .setPosition(180,315)
-//     .setSize(30,30)
-//     .setFont(inputFont)
-//     .setColor(color(black))
-//     .setColorBackground(color(white))
-//     .setColorForeground(color(highlight))
-//     .setColorActive(color(black))
-//     .setAutoClear(false)
-//     ;
   
   cp5.addToggle("direction")
       .setPosition(130,350)
@@ -583,10 +508,6 @@ void drawStandbyCues() {
   } else {
     text("R",240,358);
   }
-//  text(moveB.standbyD,275,195);
-//  text(moveB.standbyT,275,240);
-//  text(moveB.standbyAT,275,285);
-//  text(moveB.standbyDT,275,330);
 }
 
 boolean getSerialString() {
