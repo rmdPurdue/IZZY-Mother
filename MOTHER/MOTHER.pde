@@ -140,27 +140,37 @@ void serialEvent(Serial myPort) {
   boolean gotString = false;
   gotString = getSerialString();
   if(gotString) {
-    lastTime = now;
-    Estop = int(dataBuffer[0]) >> 6 & 0x01;
-    motorA.overCurrent = int(dataBuffer[0]) >> 5 & 0x01;
-    motorB.overCurrent = int(dataBuffer[0]) >> 4 & 0x01;
-    motorA.motorFault = int(dataBuffer[0]) >> 2 & 0x03;
-    motorB.motorFault = int(dataBuffer[0]) & 0x03;
-    motorA.velInCounts = int(dataBuffer[1]) << 8 | int(dataBuffer[2]);
-    motorB.velInCounts = int(dataBuffer[3]) << 8 | int(dataBuffer[4]);
-    moveA.standbyD = int(dataBuffer[5]);
-    moveA.standbyT = int(dataBuffer[6]);
-    moveA.standbyAT = int(dataBuffer[7]);
-    moveA.standbyDT = int(dataBuffer[8]);
-    moveA.direction = int(dataBuffer[9]);
+    if(dataBuffer[0] = 63) {
+      sendImHere();
+    } else {
+      lastTime = now;
+      Estop = int(dataBuffer[0]) >> 6 & 0x01;
+      motorA.overCurrent = int(dataBuffer[0]) >> 5 & 0x01;
+      motorB.overCurrent = int(dataBuffer[0]) >> 4 & 0x01;
+      motorA.motorFault = int(dataBuffer[0]) >> 2 & 0x03;
+      motorB.motorFault = int(dataBuffer[0]) & 0x03;
+      motorA.velInCounts = int(dataBuffer[1]) << 8 | int(dataBuffer[2]);
+      motorB.velInCounts = int(dataBuffer[3]) << 8 | int(dataBuffer[4]);
+      moveA.standbyD = int(dataBuffer[5]);
+      moveA.standbyT = int(dataBuffer[6]);
+      moveA.standbyAT = int(dataBuffer[7]);
+      moveA.standbyDT = int(dataBuffer[8]);
+      moveA.direction = int(dataBuffer[9]);
     
-    motorA.velInInches = motorA.velInCounts / resolution;
-    motorB.velInInches = motorB.velInCounts / resolution;
+      motorA.velInInches = motorA.velInCounts / resolution;
+      motorB.velInInches = motorB.velInCounts / resolution;
+    }
   }
 }
 
 /*        END serialEvent
 ************************************************************/
+
+void sendImHere() {
+  myPort.write(33);
+  myPort.write(33);
+  myPort.write(255);
+}
 
 /************************************************************
           BEGIN standby                                    */
