@@ -6,10 +6,11 @@ Serial myPort;
 int DATABUFFERSIZE = 80;
 int[]  dataBuffer = new int[DATABUFFERSIZE+1];
 char startChar, endChar, delimiterChar;
-boolean direction = false;
+boolean directionA = false;
+boolean directionB = false;
 
 String val;
-color headerBG, bodyBG, highlight, black, white, red;
+color headerBG, bodyBG, highlight, black, white, red, green;
 int now, lastTime, time, sampleTime;
 float resolution;
 
@@ -38,10 +39,10 @@ public class textFields {
 Motor motorA = new Motor();
 Motor motorB = new Motor();
 Move moveA = new Move();
-// Move moveB = new Move();
+Move moveB = new Move();
 
 textFields fieldsA = new textFields();
-// textFields fieldsB = new textFields();
+textFields fieldsB = new textFields();
 
 int transmissionLost;
 int Estop;
@@ -49,7 +50,7 @@ PFont headerFont;
 PFont textFont;
 PFont inputFont;
 
-Textfield distanceA, distanceB, timeA, timeB, atimeA, atimeB, dtimeA, dtimeB;
+Textfield distanceA, distanceB, timeA, atimeA, dtimeA;
 
 /*        END initialization
 ************************************************************/
@@ -67,6 +68,7 @@ void setup() {
   white = color(255,255,255);
   black = color(0,0,0);
   red = color(255,0,0);
+  green = color(12,214,0);
   cp5 = new ControlP5(this);
   startChar = '!';
   endChar = 255;
@@ -79,11 +81,11 @@ void setup() {
   drawHeader();
   drawStatusArea();
   drawCueingArea();
-//  drawPIDArea();
+  drawControlArea();
   drawCueingInput();
 
-  myPort = new Serial(this, "COM11", 9600);
-  myPort.bufferUntil(endChar);
+//  myPort = new Serial(this, "COM11", 9600);
+//  myPort.bufferUntil(endChar);
   lastTime = 0;
   sampleTime = 300;
 }
@@ -104,27 +106,27 @@ void draw() {
   }
   
   if(transmissionLost > 0) {
-    onIndicator(350,165);
+    onIndicator(50,500);
   } else {
-    offIndicator(350,165);
+    offIndicator(50,500);
   }
   
   if(Estop > 0) {
-    onIndicator(350,190);
+    onIndicator(50,525);
   } else {
-    offIndicator(350,190);
+    offIndicator(50,525);
   }
   
   if(motorA.overCurrent > 0) {
-    onIndicator(350,235);
+    onIndicator(50,570);
   } else {
-    offIndicator(350,235);
+    offIndicator(50,570);
   }
   
   if(motorB.overCurrent > 0) {
-    onIndicator(550,235);
+    onIndicator(250,570);
   } else {
-    offIndicator(550,235);
+    offIndicator(250,570);
   }
   
   drawMotorFaults();
@@ -157,9 +159,7 @@ void serialEvent(Serial myPort) {
     moveA.standbyDT = int(dataBuffer[8]);
     moveA.direction = int(dataBuffer[9]);
 //    moveB.standbyD = int(dataBuffer[9]);
-//    moveB.standbyT = int(dataBuffer[10]);
-//    moveB.standbyAT = int(dataBuffer[11]);
-//    moveB.standbyDT = int(dataBuffer[12]);
+//    moveB.direction = int(dataBuffer[10]);
     
     motorA.velInInches = motorA.velInCounts / resolution;
     motorB.velInInches = motorB.velInCounts / resolution;
@@ -177,52 +177,43 @@ public void standby() {
   String tA = timeA.getText();
   String atA = atimeA.getText();
   String dtA = dtimeA.getText();
-//  String dB = distanceB.getText();
-//  String tB = timeB.getText();
-//  String atB = atimeB.getText();
-//  String dtB = dtimeB.getText();
+  String dB = distanceB.getText();
+
   if(dA.isEmpty()) dA = "0";
   if(tA.isEmpty()) tA = "0";
   if(atA.isEmpty()) atA = "0";
   if(dtA.isEmpty()) dtA = "0";
-//  if(dB.isEmpty()) dB = "0";
-//  if(tB.isEmpty()) tB = "0";
-//  if(atB.isEmpty()) atB = "0";
-//  if(dtB.isEmpty()) dtB = "0";
+  if(dB.isEmpty()) dB = "0";
+
   byte[] data = new byte[9];
   int fdA = int(dA);
   int ftA = int(tA);
   int fatA = int(atA);
   int fdtA = int(dtA);
-//  int fdB = int(dB);
-//  int ftB = int(tB);
-//  int fatB = int(atB);
-//  int fdtB = int(dtB);
+  int fdB = int(dB);
+
   data[0] = byte('!');
   data[1] = byte(1);
   data[2] = byte(fdA);
   data[3] = byte(ftA);
   data[4] = byte(fatA);
   data[5] = byte(fdtA);
-  if(direction) data[6] = 0;
-  if(!direction) data[6] = 1;
-//  data[5] = byte(fdB);
-//  data[6] = byte(ftB);
-//  data[7] = byte(fatB);
-//  data[8] = byte(fdtB);
-  for(int i = 0; i < 7; i++) {
-    myPort.write(data[i]);
-    myPort.write(',');
-  }
-  myPort.write(byte(255));
+  if(directionA) data[6] = 0;
+  if(!directionA) data[6] = 1;
+  data[7] = byte(fdB);
+  if(directionB) data[8] = 0;
+  if(!directionB) data[8] = 1;
+
+//  for(int i = 0; i < 9; i++) {
+//    myPort.write(data[i]);
+//    myPort.write(',');
+//  }
+//  myPort.write(byte(255));
   distanceA.clear();
-//  distanceB.clear();
+  distanceB.clear();
   timeA.clear();
-//  timeB.clear();
   atimeA.clear();
-//  atimeB.clear();
   dtimeA.clear();
-//  dtimeB.clear();  
 }
 
 /*        END standby
@@ -240,6 +231,12 @@ public void go() {
 
 /*        END go
 ************************************************************/
+
+public void stop() {
+  myPort.write('!');
+  myPort.write(3);
+  myPort.write(255);
+}
 
 /************************************************************
           BEGIN drawHeader                                 */
@@ -269,53 +266,32 @@ void drawStatusArea() {
   fill(white);
   stroke(highlight);
   strokeWeight(1);
-  rect(325, 125, 250, 300);
+  rect(25, 450, 550, 150);
   fill(highlight);
   textSize(16);
-  text("Status Indicators", 450, 140);
+  text("Status Indicators", 300, 468);
   
   // Draw the default indicator labels
   fill(black);
   textFont(textFont, 14);
   textAlign(LEFT,CENTER);
-  text("Transmission Lost",370,165);
-  
-  fill(white);
-  ellipse(350,190,10,10);
-  fill(black);
-  text("E-Stop",370,190);
-  
+  text("Transmission Lost",75,500);
+  text("E-Stop",75,525);
   textAlign(CENTER,CENTER);
-  text("Overcurrent",450,215);
-  fill(white);
-  ellipse(350,235,10,10);
-  ellipse(550,235,10,10);
+  text("Overcurrent",150,550);
   fill(black);
   textAlign(LEFT,CENTER);
-  text("Motor A",370,235);
+  text("Motor A",75,570);
   textAlign(RIGHT,CENTER);
-  text("Motor B",535,235);
-  
+  text("Motor B",225,570);
   textAlign(CENTER,CENTER);
-  text("Fault Conditions",450,265);
+  text("Fault Conditions",425,530);
   textAlign(LEFT,CENTER);
-  text("Motor A",370,285);
+  text("Motor A",315,500);
   textAlign(RIGHT,CENTER);
-  text("Motor B",535,285);
-  fill(white);
-  rect(383,295,30,30);
-  rect(485,295,30,30);
-  
-  fill(black);
+  text("Motor B",540,500);
   textAlign(CENTER,CENTER);
-  text("Current Velocity (in/sec)",450,350);
-  textAlign(LEFT,CENTER);
-  text("Motor A",370,370);
-  textAlign(RIGHT,CENTER);
-  text("Motor B",535,370);
-  fill(white);
-  rect(378,380,40,30);
-  rect(480,380,40,30);
+  text("Current Velocity\n(in/sec)",425,571);
 }
 
 /*        END drawStatusArea
@@ -328,66 +304,58 @@ void drawCueingArea() {
   // Draw cuing area background
   fill(white);
   rect(25, 125, 270, 300);
-  rect(129,349,51,21);
+  rect(189,218,31,21);
+  rect(244,218,31,21);
   fill(highlight);
   textFont(headerFont, 16);
   textAlign(CENTER, CENTER);
-  text("Cue for Izzy", 150, 140);
+  text("Cue Entry", 150, 145);
   fill(black);
-  textFont(textFont,10);
-  text("Loaded Cue",255,155);
   textFont(textFont,12);
-//  text("A",150,170);
-//  text("B",195,170);
-//  text("A",240,170);
-//  text("B",275,170);
+  text("A",205,170);
+  text("B",260,170);
   textAlign(LEFT, CENTER);
-  text("Travel\ndistance (in):",40,195);
-  text("Travel\ntime (secs):",40,240);
-  text("Accel\ntime (secs):",40,285);
-  text("Decel\ntime (secs):",40,330);
-  text("Direction",40,360);
-  text("R",185,360);
+  text("Travel distance (in):",40,195);
+  text("Direction",40,235);
+  text("Travel time (secs):",40,270);
+  text("Accel time (secs):",40,310);
+  text("Decel time (secs):",40,350);
+  textFont(textFont,10);
+  text("R",190,246);
+  text("R",244,246);
   textAlign(RIGHT, CENTER);
-  text("F",125,360);
+  text("F",221,246);
+  text("F",275,246);
 }
 
 /*        END drawCueingArea
 ************************************************************/
 
 /************************************************************
-          BEGIN drawPIDArea                                */
+          BEGIN drawControlArea                                */
           
-void drawPIDArea() {
+void drawControlArea() {
   fill(white);
-  rect(25, 450, 550, 150);
+  rect(325, 125, 250, 300);
   fill(highlight);
   textFont(headerFont, 16);
   textAlign(CENTER, CENTER);
-  text("PID Loop Setup", 300, 465);
+  text("Control", 450, 145);
   fill(black);
-  textFont(textFont,14);
+  textFont(textFont,12);
+  text("A",475,170);
+  text("B",525,170);
   textAlign(LEFT, CENTER);
-  text("Motor A",40,490);
-  textSize(12);
-  text("kp:",40,515);
-  text("ki:",100,515);
-  text("kd:",160,515);
-  text("Minimum:",220,515);
-  text("Maximum:",320,515);
-  text("Sample time:",420,515);
-  textSize(14);
-  text("Motor B",40,545);
-  textSize(12);
-  text("kp:",40,565);
-  text("ki:",100,565);
-  text("kd:",160,565);
-  text("Minimum:",220,565);
-  text("Maximum:",320,565);
-  text("Sample time:",420,565);
+  text("Loaded Cue",335,170);
+  textFont(textFont,10);
+  text("Travel distance (in):",335,195);
+  text("Direction",335,225);
+  text("Travel time (secs):",335,255);
+  text("Accel time (secs):",335,285);
+  text("Decel time (secs):",335,315);
 }
 
-/*        END drawPIDArea
+/*        END drawControlArea
 ************************************************************/
 
 /************************************************************
@@ -395,7 +363,7 @@ void drawPIDArea() {
 
 void drawCueingInput() {
   distanceA = cp5.addTextfield("distanceA")
-     .setPosition(135,180)
+     .setPosition(190,180)
      .setSize(30,30)
      .setFont(inputFont)
      .setFocus(true)
@@ -406,19 +374,19 @@ void drawCueingInput() {
      .setAutoClear(false)
      ;
 
-//  distanceB = cp5.addTextfield("distanceB")
-//     .setPosition(180,180)
-//     .setSize(30,30)
-//     .setFont(inputFont)
-//     .setColor(color(black))
-//     .setColorBackground(color(white))
-//     .setColorForeground(color(highlight))
-//     .setColorActive(color(black))
-//     .setAutoClear(false)
-//     ;
+  distanceB = cp5.addTextfield("distanceB")
+     .setPosition(245,180)
+     .setSize(30,30)
+     .setFont(inputFont)
+     .setColor(color(black))
+     .setColorBackground(color(white))
+     .setColorForeground(color(highlight))
+     .setColorActive(color(black))
+     .setAutoClear(false)
+     ;
 
   timeA = cp5.addTextfield("timeA")
-     .setPosition(135,225)
+     .setPosition(218,255)
      .setSize(30,30)
      .setFont(inputFont)
      .setColor(color(0,0,0))
@@ -428,19 +396,8 @@ void drawCueingInput() {
      .setAutoClear(false)
      ;
 
-//  timeB = cp5.addTextfield("timeB")
-//     .setPosition(180,225)
-//     .setSize(30,30)
-//     .setFont(inputFont)
-//     .setColor(color(black))
-//     .setColorBackground(color(white))
-//     .setColorForeground(color(highlight))
-//     .setColorActive(color(black))
-//     .setAutoClear(false)
-//     ;
-
   atimeA = cp5.addTextfield("atimeA")
-     .setPosition(135,270)
+     .setPosition(218,295)
      .setSize(30,30)
      .setFont(inputFont)
      .setColor(color(black))
@@ -449,20 +406,9 @@ void drawCueingInput() {
      .setColorActive(color(black))
      .setAutoClear(false)
      ;
-
-//  atimeB = cp5.addTextfield("atimeB")
-//     .setPosition(180,270)
-//     .setSize(30,30)
-//     .setFont(inputFont)
-//     .setColor(color(black))
-//     .setColorBackground(color(white))
-//     .setColorForeground(color(highlight))
-//     .setColorActive(color(black))
-//     .setAutoClear(false)
-//     ;
 
   dtimeA = cp5.addTextfield("dtimeA")
-     .setPosition(135,315)
+     .setPosition(218,335)
      .setSize(30,30)
      .setFont(inputFont)
      .setColor(color(black))
@@ -471,21 +417,19 @@ void drawCueingInput() {
      .setColorActive(color(black))
      .setAutoClear(false)
      ;
-
-//  dtimeB = cp5.addTextfield("dtimeB")
-//     .setPosition(180,315)
-//     .setSize(30,30)
-//     .setFont(inputFont)
-//     .setColor(color(black))
-//     .setColorBackground(color(white))
-//     .setColorForeground(color(highlight))
-//     .setColorActive(color(black))
-//     .setAutoClear(false)
-//     ;
   
-  cp5.addToggle("direction")
-      .setPosition(130,350)
-      .setSize(50,20)
+  cp5.addToggle("directionA")
+      .setPosition(190,219)
+      .setSize(30,20)
+      .setValue(true)
+      .setMode(ControlP5.SWITCH)
+      .setColorBackground(color(white))
+      .setColorActive(color(highlight))
+      ;
+      
+  cp5.addToggle("directionB")
+      .setPosition(245,219)
+      .setSize(30,20)
       .setValue(true)
       .setMode(ControlP5.SWITCH)
       .setColorBackground(color(white))
@@ -493,19 +437,23 @@ void drawCueingInput() {
       ;
   
   cp5.addButton("standby")
-     .setPosition(50,380)
+     .setPosition(190,380)
      .setColorBackground(color(highlight))
      .setColorForeground(color(highlight))
-     .setSize(100,30)
+     .setSize(90,30)
      .setValueLabel("Standby")
+     ;
+     
+  cp5.addButton("stop")
+     .setPosition(350,340)
+     .setImage(loadImage("Stop-Button.png"))
+     .updateSize();
      ;
 
   cp5.addButton("go")
-     .setPosition(175,380)
-     .setColorBackground(color(highlight))
-     .setColorForeground(color(highlight))
-     .setSize(100,30)
-     .setValueLabel("Go")
+     .setPosition(475,340)
+     .setImage(loadImage("Go-Button.png"))
+     .updateSize();
      ;
 }
 
@@ -530,39 +478,39 @@ void drawMotorFaults() {
   if(motorA.motorFault > 0) {
     stroke(red);
     fill(white);
-    rect(383,295,30,30);
+    rect(320,515,30,30);
     fill(red);
   } else {
     stroke(highlight);
     fill(white);
-    rect(383,295,30,30);
+    rect(320,515,30,30);
     fill(black);
   }
-  text(motorA.motorFault,398,310);
+  text(motorA.motorFault,335,530);
 
   if(motorB.motorFault > 0) {
     stroke(red);
     fill(white);
-    rect(485,295,30,30);
+    rect(495,515,30,30);
     fill(red);
   } else {
     stroke(highlight);
     fill(white);
-    rect(485,295,30,30);
+    rect(495,515,30,30);
     fill(black);
   }
-  text(motorB.motorFault,500,310);
+  text(motorB.motorFault,510,530);
 }
 
 void drawMotorVelocity() {
   stroke(highlight);
   fill(white);
-  rect(378,380,40,30);
-  rect(480,380,40,30);
+  rect(320,555,30,30);
+  rect(495,555,30,30);
   fill(black);
   textAlign(CENTER,CENTER);
-  text(round(motorA.velInInches),397,395);
-  text(round(motorB.velInInches),499,395);  
+  text(round(motorA.velInInches),335,570);
+  text(round(motorB.velInInches),510,570);  
 }
 
 void drawStandbyCues() {
@@ -570,23 +518,24 @@ void drawStandbyCues() {
   textAlign(CENTER, CENTER);
   stroke(white);
   fill(white);
-  rect(230,180,30,200);
-  rect(250,180,30,200);
+  rect(440,180,125,200);
   
   fill(black);
-  text(moveA.standbyD,240,195);
-  text(moveA.standbyT,240,240);
-  text(moveA.standbyAT,240,285);
-  text(moveA.standbyDT,240,330);
+  text(moveA.standbyD,475,195);
+  text(moveB.standbyD,525,195);
+  text(moveA.standbyT,500,255);
+  text(moveA.standbyAT,500,285);
+  text(moveA.standbyDT,500,315);
   if(moveA.direction == 0) {
-    text("F",240,358);
+    text("F",475,225);
   } else {
-    text("R",240,358);
+    text("R",475,225);
   }
-//  text(moveB.standbyD,275,195);
-//  text(moveB.standbyT,275,240);
-//  text(moveB.standbyAT,275,285);
-//  text(moveB.standbyDT,275,330);
+  if(moveB.direction == 0) {
+    text("F",525,225);
+  } else {
+    text("R",525,225);
+  }
 }
 
 boolean getSerialString() {
